@@ -10,6 +10,10 @@ import Hero from './components/home/Hero';
 import TokenForm from './components/TokenForm';
 import backgroundImage from './assets/images/Background.jpg';
 
+import Footer       from './components/Footer';
+import HowToUse       from './components/HowToUse';
+import FAQs       from './components/FAQs';
+
 export default function App() {
   return (
 
@@ -51,7 +55,11 @@ export default function App() {
                     style={{ backgroundImage: `url(${backgroundImage})` }}
                   >
                     <Hero />
+                    <HowToUse />
+                    <FAQs />
+                    <Footer />
                   </div>
+                  
                 }
 
 
@@ -76,6 +84,7 @@ export default function App() {
                     
                     <TokenForm />
                   </div>
+                    <Footer />
                 </div>
                 
               }

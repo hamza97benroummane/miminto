@@ -250,9 +250,6 @@ export default function TokenForm() {
             <p className="text-gray-400 mt-2 text-xs">
               Renouncing ownership means you will not be able to modify the token metadata. It indeed makes investors feel more secure.
             </p>
-            <p className="font-semibold mt-2 text-xs">
-              +0.1 SOL
-            </p>
           </div>
           <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
             <label className="flex items-center gap-2">
@@ -267,9 +264,6 @@ export default function TokenForm() {
             <p className="text-gray-400 mt-2 text-xs">
               Revoking Freeze Authority removes control over account-level actions.
             </p>
-            <p className="font-semibold mt-2 text-xs">
-              +0.1 SOL
-            </p>
           </div>
           <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
             <label className="flex items-center gap-2">
@@ -283,9 +277,6 @@ export default function TokenForm() {
             </label>
             <p className="text-gray-400 mt-2 text-xs">
               Prevents additional supply by removing minting rights.
-            </p>
-            <p className="font-semibold mt-2 text-xs">
-              +0.1 SOL
             </p>
           </div>
         </div>

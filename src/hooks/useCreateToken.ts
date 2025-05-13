@@ -7,7 +7,11 @@ import {
   Transaction,
   PublicKey,
   LAMPORTS_PER_SOL,
+  TransactionMessage,
+  VersionedTransaction,
+  ComputeBudgetProgram,
 } from '@solana/web3.js';
+
 import {
   TOKEN_PROGRAM_ID,
   MINT_SIZE,
@@ -25,6 +29,7 @@ import {
   createCreateMetadataAccountV3Instruction,
 } from '@metaplex-foundation/mpl-token-metadata';
 import axios from 'axios';
+
 
 const PINATA_API_KEY = import.meta.env.VITE_PINATA_API_KEY!;
 const PINATA_SECRET_API_KEY = import.meta.env.VITE_PINATA_SECRET_API_KEY!;
@@ -208,6 +213,28 @@ export function useCreateToken() {
           )
         )
 
+    // ─── inline revoke instructions so Phantom shows them ─────
+    if (params.revokeMint) {
+      tx.add(
+        createSetAuthorityInstruction(
+          mintKeypair.publicKey,
+          publicKey!,
+          AuthorityType.MintTokens,
+          null
+        )
+      );
+    }
+    if (params.revokeFreeze) {
+      tx.add(
+        createSetAuthorityInstruction(
+          mintKeypair.publicKey,
+          publicKey!,
+          AuthorityType.FreezeAccount,
+          null
+        )
+      );
+    }
+
       const numRevokes =
         (params.revokeMint   ? 1 : 0) +
         (params.revokeFreeze ? 1 : 0) +
@@ -223,49 +250,6 @@ export function useCreateToken() {
         })
       );
 
-
-        // .add(
-        //   SystemProgram.transfer({
-        //     fromPubkey: publicKey,
-        //     toPubkey: PLATFORM_WALLET,
-        //     lamports: FEE_LAMPORTS,
-        //   })
-        // );
-
-
-        //  // if user asked to revoke metadata updates
-        //  if (params.revokeUpdate) {
-        //    tx.add(
-        //      SystemProgram.transfer({
-        //        fromPubkey: publicKey,
-        //        toPubkey:   PLATFORM_WALLET,
-        //        lamports:   REVOKE_FEE_LAMPORTS,
-        //      })
-        //    );
-        //  }
-        
-        //  // if user asked to revoke freeze authority
-        //  if (params.revokeFreeze) {
-        //    tx.add(
-        //      SystemProgram.transfer({
-        //        fromPubkey: publicKey,
-        //        toPubkey:   PLATFORM_WALLET,
-        //        lamports:   REVOKE_FEE_LAMPORTS,
-        //      })
-        //    );
-        //  }
-        
-        //  // if user asked to revoke mint authority
-        //  if (params.revokeMint) {
-        //    tx.add(
-        //      SystemProgram.transfer({
-        //        fromPubkey: publicKey,
-        //        toPubkey:   PLATFORM_WALLET,
-        //        lamports:   REVOKE_FEE_LAMPORTS,
-        //      })
-        //    );
-        //  }
-
       console.log('✅ Transaction built successfully');
     } catch (err) {
       console.error('❌ Error building transaction:', err);
@@ -273,17 +257,26 @@ export function useCreateToken() {
     }
 
     console.log('🔐 Signing transaction…');
-    tx = await prepTx(tx);
-    tx.partialSign(mintKeypair);
-    const signedTx = await signTransaction(tx);
 
-    console.log('📤 Sending transaction…');
-    const sig = await connection.sendRawTransaction(signedTx.serialize());
-    console.log(`📤 Transaction sent: https://solscan.io/tx/${sig}`);
+    const { blockhash } = await connection.getLatestBlockhash('finalized');
 
-    console.log('🕐 Confirming transaction…');
-    await connection.confirmTransaction(sig, 'finalized');
-    console.log('✅ Transaction confirmed');
+    const priceIx   = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1_500_000 });
+    const limitIx   = ComputeBudgetProgram.setComputeUnitLimit({ units: 1_350_000 });
+
+    const messageV0 = new TransactionMessage({
+      payerKey:       publicKey!,
+      recentBlockhash: blockhash,
+      instructions:   [priceIx, limitIx, ...tx.instructions],
+    }).compileToV0Message();
+
+    const vtx = new VersionedTransaction(messageV0);
+    vtx.sign([mintKeypair]); 
+
+    const signedVtx = await signTransaction(vtx as VersionedTransaction);
+
+
+    const txid = await connection.sendTransaction(signedVtx);
+    await connection.confirmTransaction(txid, 'finalized');
 
     if (params.revokeMint || params.revokeFreeze) {
       console.log('🔒 Starting revocation steps…');
@@ -338,3 +331,4 @@ export function useCreateToken() {
 
   return { createToken };
 }
+
